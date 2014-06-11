@@ -1,0 +1,52 @@
+{
+	"variables": {
+        "ssh_name": "packer",
+        "ssh_pass": "packer"
+    },
+    "builders": [{
+		"vm_name": "dev-app-host-virtualbox",
+		"type": "virtualbox-iso",
+		"guest_os_type": "Ubuntu_64",
+
+        "disk_size" : 10000,
+
+		"vboxmanage": [
+		    [
+		      "modifyvm",
+		      "{{.Name}}",
+		      "--nic1",
+		      "bridged"
+		    ],
+		    [
+		      "modifyvm",
+		      "{{.Name}}",
+		      "--bridgeadapter1",
+		      "eth0"
+		    ]
+      	]
+
+		"iso_url": "/home/greggvarona/Documents/virtualbox-isos/ubuntu-14.04-server-amd64.iso",
+		"iso_checksum_type": "none",
+		"ssh_username": "{{user `ssh_name`}}",
+        "ssh_password": "{{user `ssh_pass`}}",
+		"ssh_port": 22,
+		"shutdown_command": "echo '{{user `ssh_name`}}' | sudo -S shutdown -P now",
+		"boot_wait": "5s",
+		"boot_command" : [
+            "<esc><esc><enter><wait>",
+            "/install/vmlinuz noapic ",
+            "preseed/url=http://{{ .HTTPIP }}:80/preseed.cfg <wait>",
+            "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
+            "hostname=dev-app-host ",
+            "fb=false debconf/frontend=noninteractive ",
+            "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
+            "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
+            "initrd=/install/initrd.gz -- <enter>"
+        ]
+	}],
+	"provisioners": [{
+		"type" : "shell",
+		"scripts" : ["scripts/setup.sh"],
+		"execute_command": "echo '{{user `ssh_pass`}}' | {{ .Vars }} sudo -E -S sh '{{ .Path }}'"
+	}]
+}
